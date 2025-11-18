@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Human Verification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            border: 1px solid #e9ecef;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .verification-box {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .checkbox {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .checkbox.checked {
+            background: #667eea;
+        }
+        
+        .checkbox.checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 20px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .checkbox-label {
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .slider-container {
+            margin-top: 20px;
+        }
+        
+        .slider-label {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .slider-track {
+            width: 100%;
+            height: 50px;
+            background: #e9ecef;
+            border-radius: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .slider-button {
+            width: 50px;
+            height: 50px;
+            background: #667eea;
+            border-radius: 50%;
+            position: absolute;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+        
+        .slider-button:active {
+            cursor: grabbing;
+        }
+        
+        .slider-button.success {
+            background: #28a745;
+        }
+        
+        .status {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .status.error {
+            background: #fee;
+            color: #c33;
+            display: block;
+        }
+        
+        .status.success {
+            background: #efe;
+            color: #3c3;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 Human Verification</h1>
+        <p class="subtitle">Please verify you're human to continue</p>
+        
+        <div class="verification-box">
+            <div class="checkbox-container" id="checkboxContainer">
+                <div class="checkbox" id="checkbox"></div>
+                <span class="checkbox-label">I'm not a robot</span>
+            </div>
+            
+            <div class="slider-container">
+                <div class="slider-label">Slide to verify →</div>
+                <div class="slider-track" id="sliderTrack">
+                    <div class="slider-button" id="sliderButton">→</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        // Anti-debugging and anti-inspection
+        (function() {
+            const devtools = /./;
+            devtools.toString = function() {
+                this.opened = true;
+            }
+            
+            const checkDevTools = setInterval(() => {
+                if (devtools.opened) {
+                    window.location.href = 'about:blank';
+                }
+                console.profile();
+                console.profileEnd();
+                if (console.clear) console.clear();
+            }, 1000);
+            
+            // Detect if opened in dev tools
+            const threshold = 160;
+            setInterval(() => {
+                if (window.outerWidth - window.innerWidth > threshold || 
+                    window.outerHeight - window.innerHeight > threshold) {
+                    document.body.innerHTML = '';
+                    window.location.href = 'about:blank';
+                }
+            }, 1000);
+        })();
+
+        // Disable right-click
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        
+        // Disable common keyboard shortcuts
+        document.addEventListener('keydown', e => {
+            if (e.keyCode == 123 || // F12
+                (e.ctrlKey && e.shiftKey && e.keyCode == 73) || // Ctrl+Shift+I
+                (e.ctrlKey && e.shiftKey && e.keyCode == 74) || // Ctrl+Shift+J
+                (e.ctrlKey && e.keyCode == 85)) { // Ctrl+U
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Anti-curl: detect headless browsers and automated tools
+        const isCurl = !window.navigator.userAgent || 
+                       window.navigator.userAgent.includes('curl') ||
+                       !window.screen || 
+                       !window.screen.width ||
+                       !document.createElement('canvas').getContext ||
+                       !window.localStorage;
+        
+        if (isCurl) {
+            document.body.innerHTML = '<h1 style="text-align:center;margin-top:50px;">Access Denied</h1>';
+            throw new Error('Automated access detected');
+        }
+
+        let checkboxClicked = false;
+        let sliderCompleted = false;
+        let startTime = Date.now();
+        let mouseMovements = 0;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        let hasInteracted = false;
+
+        const checkbox = document.getElementById('checkbox');
+        const checkboxContainer = document.getElementById('checkboxContainer');
+        const sliderButton = document.getElementById('sliderButton');
+        const sliderTrack = document.getElementById('sliderTrack');
+        const status = document.getElementById('status');
+        
+        // Base64 encoded redirect URL
+        const encodedUrl = 'aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbQ==';
+
+        // Track mouse movements
+        document.addEventListener('mousemove', (e) => {
+            hasInteracted = true;
+            if (Math.abs(e.clientX - lastMouseX) > 5 || Math.abs(e.clientY - lastMouseY) > 5) {
+                mouseMovements++;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            }
+        });
+        
+        // Track clicks
+        document.addEventListener('click', () => {
+            hasInteracted = true;
+        });
+
+        // Checkbox click handler
+        checkboxContainer.addEventListener('click', () => {
+            if (!checkboxClicked) {
+                checkbox.classList.add('checked');
+                checkboxClicked = true;
+                checkVerification();
+            }
+        });
+
+        // Slider functionality
+        let isDragging = false;
+        let startX = 0;
+        let currentX = 0;
+
+        sliderButton.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            const trackRect = sliderTrack.getBoundingClientRect();
+            const maxX = trackRect.width - 50;
+            currentX = Math.min(Math.max(0, e.clientX - trackRect.left - 25), maxX);
+            
+            sliderButton.style.left = currentX + 'px';
+            
+            if (currentX >= maxX - 5) {
+                sliderCompleted = true;
+                sliderButton.innerHTML = '✓';
+                sliderButton.classList.add('success');
+                isDragging = false;
+                checkVerification();
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging && !sliderCompleted) {
+                sliderButton.style.left = '0px';
+            }
+            isDragging = false;
+        });
+
+        // Touch support for mobile
+        sliderButton.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            startX = e.touches[0].clientX;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            
+            const trackRect = sliderTrack.getBoundingClientRect();
+            const maxX = trackRect.width - 50;
+            currentX = Math.min(Math.max(0, e.touches[0].clientX - trackRect.left - 25), maxX);
+            
+            sliderButton.style.left = currentX + 'px';
+            
+            if (currentX >= maxX - 5) {
+                sliderCompleted = true;
+                sliderButton.innerHTML = '✓';
+                sliderButton.classList.add('success');
+                isDragging = false;
+                checkVerification();
+            }
+        });
+
+        document.addEventListener('touchend', () => {
+            if (isDragging && !sliderCompleted) {
+                sliderButton.style.left = '0px';
+            }
+            isDragging = false;
+        });
+
+        function checkVerification() {
+            const timeTaken = (Date.now() - startTime) / 1000;
+            
+            if (checkboxClicked && sliderCompleted) {
+                // Bot detection: too fast, no mouse movement, or no interaction
+                if (timeTaken < 1 || mouseMovements < 5 || !hasInteracted) {
+                    status.className = 'status error';
+                    status.textContent = '⚠️ Suspicious activity detected. Please try again.';
+                    setTimeout(() => {
+                        resetVerification();
+                    }, 2000);
+                    return;
+                }
+                
+                status.className = 'status success';
+                status.textContent = '✓ Verification successful! Redirecting...';
+                
+                setTimeout(() => {
+                    // Decode base64 URL and redirect
+                    const decodedUrl = atob(encodedUrl);
+                    window.location.href = decodedUrl;
+                }, 1500);
+            }
+        }
+
+        function resetVerification() {
+            checkboxClicked = false;
+            sliderCompleted = false;
+            checkbox.classList.remove('checked');
+            sliderButton.style.left = '0px';
+            sliderButton.innerHTML = '→';
+            sliderButton.classList.remove('success');
+            status.style.display = 'none';
+            startTime = Date.now();
+            mouseMovements = 0;
+        }
+    </script>
+</body>
+</html>
