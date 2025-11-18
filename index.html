@@ -257,13 +257,38 @@
             }
         });
         
-        // Track clicks
+        // Track touch movements for mobile
+        document.addEventListener('touchmove', (e) => {
+            hasInteracted = true;
+            const touch = e.touches[0];
+            if (Math.abs(touch.clientX - lastMouseX) > 5 || Math.abs(touch.clientY - lastMouseY) > 5) {
+                mouseMovements++;
+                lastMouseX = touch.clientX;
+                lastMouseY = touch.clientY;
+            }
+        });
+        
+        // Track clicks and touches
         document.addEventListener('click', () => {
+            hasInteracted = true;
+        });
+        
+        document.addEventListener('touchstart', () => {
             hasInteracted = true;
         });
 
         // Checkbox click handler
         checkboxContainer.addEventListener('click', () => {
+            if (!checkboxClicked) {
+                checkbox.classList.add('checked');
+                checkboxClicked = true;
+                checkVerification();
+            }
+        });
+        
+        // Touch support for checkbox on mobile
+        checkboxContainer.addEventListener('touchend', (e) => {
+            e.preventDefault();
             if (!checkboxClicked) {
                 checkbox.classList.add('checked');
                 checkboxClicked = true;
@@ -341,8 +366,15 @@
             const timeTaken = (Date.now() - startTime) / 1000;
             
             if (checkboxClicked && sliderCompleted) {
-                // Bot detection: too fast, no mouse movement, or no interaction
-                if (timeTaken < 1 || mouseMovements < 5 || !hasInteracted) {
+                // Detect if mobile device
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                
+                // Adjusted thresholds for mobile vs desktop
+                const minTime = isMobile ? 0.5 : 1;
+                const minMovements = isMobile ? 2 : 5;
+                
+                // Bot detection: too fast, no movement, or no interaction
+                if (timeTaken < minTime || mouseMovements < minMovements || !hasInteracted) {
                     status.className = 'status error';
                     status.textContent = '⚠️ Suspicious activity detected. Please try again.';
                     setTimeout(() => {
