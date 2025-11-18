@@ -176,32 +176,24 @@
     </div>
 
     <script>
-        // Anti-debugging and anti-inspection
-        (function() {
-            const devtools = /./;
-            devtools.toString = function() {
-                this.opened = true;
-            }
-            
-            const checkDevTools = setInterval(() => {
-                if (devtools.opened) {
-                    window.location.href = 'about:blank';
+        // Anti-debugging and anti-inspection (with delay to avoid false positives)
+        setTimeout(() => {
+            (function() {
+                const devtools = /./;
+                devtools.toString = function() {
+                    this.opened = true;
                 }
-                console.profile();
-                console.profileEnd();
-                if (console.clear) console.clear();
-            }, 1000);
-            
-            // Detect if opened in dev tools
-            const threshold = 160;
-            setInterval(() => {
-                if (window.outerWidth - window.innerWidth > threshold || 
-                    window.outerHeight - window.innerHeight > threshold) {
-                    document.body.innerHTML = '';
-                    window.location.href = 'about:blank';
-                }
-            }, 1000);
-        })();
+                
+                const checkDevTools = setInterval(() => {
+                    if (devtools.opened) {
+                        document.body.innerHTML = '<h1 style="text-align:center;margin-top:50px;">Access Denied</h1>';
+                    }
+                    console.profile();
+                    console.profileEnd();
+                    if (console.clear) console.clear();
+                }, 2000);
+            })();
+        }, 3000);
 
         // Disable right-click
         document.addEventListener('contextmenu', e => e.preventDefault());
